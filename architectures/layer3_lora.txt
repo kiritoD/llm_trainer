@@ -1,0 +1,126 @@
+PeftModelForCausalLM(
+  (base_model): LoraModel(
+    (model): LlamaForCausalLM(
+      (model): LlamaModel(
+        (embed_tokens): Embedding(32001, 4096)
+        (layers): ModuleList(
+          (0-2): 3 x LlamaDecoderLayer(
+            (self_attn): LlamaAttention(
+              (q_proj): Linear(
+                in_features=4096, out_features=4096, bias=False
+                (lora_dropout): ModuleDict(
+                  (default): Dropout(p=0.05, inplace=False)
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=4096, out_features=2, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=2, out_features=4096, bias=False)
+                )
+                (lora_AB): ModuleDict()
+              )
+              (k_proj): Linear(
+                in_features=4096, out_features=4096, bias=False
+                (lora_dropout): ModuleDict(
+                  (default): Dropout(p=0.05, inplace=False)
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=4096, out_features=2, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=2, out_features=4096, bias=False)
+                )
+                (lora_AB): ModuleDict()
+              )
+              (v_proj): Linear(
+                in_features=4096, out_features=4096, bias=False
+                (lora_dropout): ModuleDict(
+                  (default): Dropout(p=0.05, inplace=False)
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=4096, out_features=2, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=2, out_features=4096, bias=False)
+                )
+                (lora_AB): ModuleDict()
+              )
+              (o_proj): Linear(
+                in_features=4096, out_features=4096, bias=False
+                (lora_dropout): ModuleDict(
+                  (default): Dropout(p=0.05, inplace=False)
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=4096, out_features=2, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=2, out_features=4096, bias=False)
+                )
+                (lora_AB): ModuleDict()
+              )
+              (rotary_emb): LlamaRotaryEmbedding()
+            )
+            (mlp): LlamaMLP(
+              (gate_proj): Linear(
+                in_features=4096, out_features=11008, bias=False
+                (lora_dropout): ModuleDict(
+                  (default): Dropout(p=0.05, inplace=False)
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=4096, out_features=2, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=2, out_features=11008, bias=False)
+                )
+                (lora_AB): ModuleDict()
+              )
+              (up_proj): Linear(
+                in_features=4096, out_features=11008, bias=False
+                (lora_dropout): ModuleDict(
+                  (default): Dropout(p=0.05, inplace=False)
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=4096, out_features=2, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=2, out_features=11008, bias=False)
+                )
+                (lora_AB): ModuleDict()
+              )
+              (down_proj): Linear(
+                in_features=11008, out_features=4096, bias=False
+                (lora_dropout): ModuleDict(
+                  (default): Dropout(p=0.05, inplace=False)
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=11008, out_features=2, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=2, out_features=4096, bias=False)
+                )
+                (lora_AB): ModuleDict()
+              )
+              (act_fn): SiLUActivation()
+            )
+            (input_layernorm): LlamaRMSNorm()
+            (post_attention_layernorm): LlamaRMSNorm()
+          )
+        )
+        (norm): LlamaRMSNorm()
+      )
+      (lm_head): Linear(
+        in_features=4096, out_features=32001, bias=False
+        (lora_dropout): ModuleDict(
+          (default): Dropout(p=0.05, inplace=False)
+        )
+        (lora_A): ModuleDict(
+          (default): Linear(in_features=4096, out_features=2, bias=False)
+        )
+        (lora_B): ModuleDict(
+          (default): Linear(in_features=2, out_features=32001, bias=False)
+        )
+        (lora_AB): ModuleDict()
+      )
+    )
+  )
+)

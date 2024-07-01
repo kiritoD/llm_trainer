@@ -1,0 +1,83 @@
+data-params:
+    dataset_class_name: SamSumDataset
+    train_file: samsum
+    eval_file: samsum
+
+model-params:
+    peft: True
+    pretrain_model_path: "/hpc2hdd/home/fwang380/OpenSource/Models/Llama-2-7b-hf"
+    output_model_path: "./model_outputs"
+    output_fp32_model: False
+    low_cpu_mem_usage: True
+
+tokenizer-params:
+    pretrain_tokenizer_path: "/hpc2hdd/home/fwang380/OpenSource/Models/Llama-2-7b-hf"
+    add_special_tokens: True
+    special_tokens:
+        bos_token: "<s>"
+        eos_token: "</s>"
+        sep_token: ""
+        pad_token: "<pad>"
+        unk_token: ""
+    max_len: 1024
+    batch_pad_truncate: True # truncate samples in batch level, if true, can set a higger batchsize, the training will significantly accelerate, however, when the data is long, use this may OOM
+    ignore_q: True # if ignore the question and prompt in samples
+
+trainer-params:
+    wandb_project_name: llama2_peft_rank_experiments_nlg # a project contains a series of runs[`run_name`], which can be shown in webui
+    run_name: peft_lora_lr1e-3_train_samsum_cosine_original_r2 # a wandb trail run name
+    seed: 42
+    data_seed: 42
+    dataloader_pin_memory: True
+    output_dir: "model_output/rank_experiments/llama2/samsum/r2/peft_lora_lr1e-3_train_samsum_cosine_original_r2"
+    num_train_epochs: 3
+    do_eval: True
+    eval_fn: "samsum_metric"
+    evaluation_strategy: "steps"
+    eval_steps: 60
+    eval_delay: 0 # from which epoch/step to evaluate
+    use_legacy_prediction_loop: True # before transformer v5, set this key to true can ensure that the predicted data and the original dataset are length-aligned
+    predict_with_generate: True # predict via generate function
+    prediction_loss_only: False # generate no loss
+    prediction_file_name: "result.jsonl"
+    care_tokens: ~ # if care some tokens' probability , after set `generation_config.output_scores` to true, just specify special characters, otherwhise, output each generated tokens' probability
+    per_device_eval_batch_size: 32
+    per_device_train_batch_size: 12 # peft:32
+    gradient_accumulation_steps: 2
+    gradient_checkpointing: True # if True, save more memory in bp stage
+    save_strategy: "no" # if not use resume either ft, continue pretrain, try to keep this key 'no'
+    optim: adamw_torch_fused # torch >= 2.0
+    learning_rate: 0.001 # peft:0.0008
+    weight_decay: 0.0001
+    adam_beta1: 0.9
+    adam_beta2: 0.95
+    lr_scheduler_type: cosine
+    warmup_ratio: 0.001
+    logging_strategy: "steps"
+    logging_steps: 1
+    log_on_each_node: False # just logging in main node
+    bf16: True
+    fp16: False
+    deepspeed: /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/config/train/ds_config/ds_config_zero2_no_cpu_offload_op_scheduler.json
+    # adalora just suport zero1
+    remove_unused_columns: False
+    combine_causal_loss_factor: 0.1 # combie the ft loss + continue pretrain loss for peft
+    # generation_max_length: 1024 # you should set this value to a suitable value beacause in the ealy epoch, model may generate max-length string beacuse of its incomprehension
+    generation_config:
+      max_length: 1024
+      max_new_tokens: 128
+      do_sample: False # if false, just one, greedy search
+      num_beams: 1
+      temperature: 0.7 # if do_sample = True, this key works
+      top_k: 5
+      output_scores: True
+
+peft-params:
+    peft_type: lora
+    task_type: CAUSAL_LM
+    target_modules: ['q_proj', 'down_proj', 'gate_proj', 'k_proj', 'v_proj', 'o_proj', 'up_proj', 'lm_head']
+    r: 2
+    lora_alpha: 4
+    lora_dropout: 0.05
+    activate_fn: ~
+    d_parts: 1

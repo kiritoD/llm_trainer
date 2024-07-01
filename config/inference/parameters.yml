@@ -1,0 +1,68 @@
+data-params:
+  dataset_class_name: CCRDataset
+  train_file: /mnt/bn/ecom-ccr-dev/mlx/users/lida/unified/ccr_all_train_v3_with_source_0522_4_train.parquet
+  test_file: /mnt/bn/ecom-ccr-dev/mlx/users/lida/unified/watch_with_valid_0522.parquet
+
+predict-params:
+  max_length: 256
+
+model-params:
+  peft: False
+  pretrain_model_path: "/mnt/bn/ecom-ccr-dev/mlx/users/dongjunwei/hf_models/Llama-2-7b-hf"
+  checkpoint_model_path: ~
+  # - "/mnt/bn/ecom-ccr-dev/mlx/users/dongjunwei/EasyGuard/examples/peft_llm/model_output/external_platform_c2_model_ft_lr_2e-5/checkpoint-1042/"
+  # - "/mnt/bn/ecom-ccr-dev/mlx/users/dongjunwei/EasyGuard/examples/peft_llm/model_output/external_platform_c2_model_ft_lr_2e-5/checkpoint-2084/"
+  # - "/mnt/bn/ecom-ccr-dev/mlx/users/dongjunwei/EasyGuard/examples/peft_llm/model_output/external_platform_c2_model_ft_lr_2e-5/checkpoint-3126/"
+  # - "/mnt/bn/ecom-ccr-dev/mlx/users/dongjunwei/EasyGuard/examples/peft_llm/model_output/external_platform_c2_model_ft_lr_2e-5/checkpoint-4168/"
+  # - "/mnt/bn/ecom-ccr-dev/mlx/users/dongjunwei/EasyGuard/examples/peft_llm/model_output/external_platform_c2_model_ft_lr_2e-5/checkpoint-5210/"
+  # checkpoint_model_path will load some specific weight file
+  peft_model_path: ~
+    # - "/mnt/bn/ecom-ccr-dev/mlx/users/dongjunwei/EasyGuard/examples/peft_llm/model_output/debug/ccr_lora/LORA/step_609"
+  weights_merge: False # if merge weights, may accelerate 1.2x,but it may lead to a poor model performance due to the matrix multiplication operation
+  load_weight_after_peft: False # if load the entire peft-no-processed model, set this to true, will load the weights from `checkpoint_model_path`
+  low_cpu_mem_usage: True
+  gradient_checkpointing: False
+
+tokenizer-params:
+  pretrain_tokenizer_path: "/mnt/bn/ecom-ccr-dev/mlx/users/dongjunwei/hf_models/Llama-2-7b-hf"
+  add_special_tokens: True
+  special_tokens:
+      bos_token: "<s>"
+      eos_token: "</s>"
+      sep_token: ""
+      pad_token: "<pad>"
+      unk_token: ""
+  max_len: 1024
+  
+trainer-params:
+    output_dir: "model_output/external_platform_c2/test_predict"
+    prediction_file_name: "result_predict.jsonl"
+    do_predict: True
+    use_legacy_prediction_loop: True # before transformer v5, set this key to true can ensure that the predicted data and the original dataset are length-aligned
+    predict_with_generate: True # predict via generate function
+    care_tokens: ~ # if care some str probability , after set `generation_config.output_scores` to true, just specify special characters, otherwhise, output each generated tokens' probability
+    # per_device_eval_batch_size: 24 # 7B
+    per_device_eval_batch_size: 128
+    dataloader_drop_last: False
+    dataloader_num_workers: 4
+    disable_tqdm: True
+    save_strategy: "no" # not save weight
+    logging_steps: 1
+    log_on_each_node: False # just logging in main node
+    remove_unused_columns: False
+    generation_config:
+      # max_length: 1024 # the `prompt + question + output` total length, it will early stop when meet eos token
+      # max_new_tokens: 50
+      do_sample: False # if false, just one, greedy search
+      num_beams: 1
+      temperature: 0.7 # if do_sample = True, this key works
+      top_k: 5
+      output_scores: True
+
+peft-params:
+  peft_type: lora
+  task_type: CAUSAL_LM
+  target_modules: ['query_key_value', 'dense_h_to_4h', 'dense_4h_to_h', 'dense']
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05

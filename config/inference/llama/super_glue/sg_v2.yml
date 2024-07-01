@@ -1,0 +1,71 @@
+data-params:
+    dataset_class_name: SuperGlueDatasets
+    test_file: 
+    - boolq
+    - multirc
+    - cb
+    - copa
+    - rte
+    - wic
+    - wsc
+    - record
+    # test_size: 100
+
+model-params:
+  peft: True
+  pretrain_model_path: "/hpc2hdd/home/fwang380/OpenSource/Models/Llama-2-7b-hf"
+  checkpoint_model_path: ~
+  peft_model_path:
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r8/peft_lora_lr1e-3_train_super_glue_cosine_d_parts_r8/LORA/step_1326
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r8/peft_lora_lr1e-3_train_super_glue_cosine_d_parts_r8/LORA/step_1655
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r8/peft_lora_lr1e-3_train_super_glue_cosine_original_r8/LORA/step_1655
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r8/peft_lora_lr1e-3_train_super_glue_cosine_silu_r8/LORA/step_994
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r8/peft_lora_lr1e-3_train_super_glue_cosine_silu_r8/LORA/step_1655
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r16/peft_lora_lr1e-3_train_super_glue_cosine_d_parts_r16/LORA/step_1655
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r16/peft_lora_lr1e-3_train_super_glue_cosine_gelu_r16/LORA/step_1655
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r16/peft_lora_lr1e-3_train_super_glue_cosine_original_r16/LORA/step_1326
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r16/peft_lora_lr1e-3_train_super_glue_cosine_original_r16/LORA/step_1655
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r16/peft_lora_lr1e-3_train_super_glue_cosine_silu_r16/LORA/step_994
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue/r16/peft_lora_lr1e-3_train_super_glue_cosine_silu_r16/LORA/step_1655
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue_all/adalora/adalora_super_glue_all_cosine_original_r16_8_42/ADALORA/step_1657
+    - /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/rank_experiments/llama2/super_glue_all/adalora/adalora_super_glue_all_cosine_original_r16_8_42/ADALORA/step_1986
+  weights_merge: False # if merge weights, may accelerate 1.2x,but it may lead to a poor model performance due to the matrix multiplication operation
+  load_weight_after_peft: False # if load the entire peft-no-processed model, set this to true, will load the weights from `checkpoint_model_path`
+  low_cpu_mem_usage: True
+
+tokenizer-params:
+  pretrain_tokenizer_path: "/hpc2hdd/home/fwang380/OpenSource/Models/Llama-2-7b-hf"
+  add_special_tokens: True
+  special_tokens:
+      bos_token: "<s>"
+      eos_token: "</s>"
+      sep_token: ""
+      pad_token: "<pad>"
+      unk_token: ""
+  max_len: 1024
+  
+trainer-params:
+    output_dir: "model_output/external_platform_c2/test_predict"
+    prediction_file_name: "result_predict.jsonl"
+    do_predict: True
+    eval_fn: "super_glue_metric"
+    eval_fn_params:
+      if_only_zip: True
+    use_legacy_prediction_loop: True # before transformer v5, set this key to true can ensure that the predicted data and the original dataset are length-aligned
+    predict_with_generate: True # predict via generate function
+    per_device_eval_batch_size: 32
+    dataloader_drop_last: False
+    dataloader_num_workers: 4
+    disable_tqdm: True
+    save_strategy: "no" # not save weight
+    logging_steps: 1
+    log_on_each_node: False # just logging in main node
+    remove_unused_columns: False
+    generation_config:
+      max_length: 1024 # the `prompt + question + output` total length, it will early stop when meet eos token
+      max_new_tokens: 10
+      do_sample: False # if false, just one, greedy search
+      num_beams: 1
+      temperature: 0.7 # if do_sample = True, this key works
+      top_k: 5
+      output_scores: False

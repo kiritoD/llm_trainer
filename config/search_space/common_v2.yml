@@ -1,0 +1,73 @@
+# a common search space: [lora_r2activate_fn, lora_r4, lora_r8, lora_r16, lora_gelu_r2, lora_gelu_r4, lora_gelu_r8, lora_gelu_r16, lora_d_parts_r2, lora_d_parts_r4, lora_d_parts_r8, lora_d_parts_r16]
+lora_r2:
+  peft_type: lora
+  r: 2
+  lora_alpha: 4
+  activate_fn: ~
+  d_parts: 1
+lora_r4:
+  peft_type: lora
+  r: 4
+  lora_alpha: 8
+  activate_fn: ~
+  d_parts: 1
+lora_r8:
+  peft_type: lora
+  r: 8
+  lora_alpha: 16
+  activate_fn: ~
+  d_parts: 1
+lora_r16:
+  peft_type: lora
+  r: 16
+  lora_alpha: 32 
+  activate_fn: ~
+  d_parts: 1
+lora_gelu_r2:
+  peft_type: lora
+  r: 2
+  lora_alpha: 4
+  activate_fn: gelu
+  d_parts: 1
+lora_gelu_r4:
+  peft_type: lora
+  r: 4
+  lora_alpha: 8
+  activate_fn: gelu
+  d_parts: 1
+lora_gelu_r8:
+  peft_type: lora
+  r: 8
+  lora_alpha: 16
+  activate_fn: gelu
+  d_parts: 1
+lora_gelu_r16:
+  peft_type: lora
+  r: 16
+  lora_alpha: 32  
+  activate_fn: gelu
+  d_parts: 1
+# lora_d_parts_r2:
+#   peft_type: lora
+#   r: 2
+#   lora_alpha: 4
+#   activate_fn: ~
+#   d_parts: 2
+# lora_d_parts_r4:
+#   peft_type: lora
+#   r: 4
+#   lora_alpha: 8
+#   activate_fn: ~
+#   d_parts: 2
+# lora_d_parts_r8:
+#   peft_type: lora
+#   r: 8
+#   lora_alpha: 16
+#   activate_fn: ~
+#   d_parts: 2
+# lora_d_parts_r16:
+#   peft_type: lora
+#   r: 16
+#   lora_alpha: 32   
+#   activate_fn: ~
+#   d_parts: 2

@@ -1,0 +1,61 @@
+data-params:
+    dataset_class_name: GLUEDataset_Common
+    train_file: qqp
+    # train_size: 1000
+    eval_file: qqp
+    pad_to_max_length: True
+    max_seq_length: 128
+    overwrite_cache: False
+
+model-params:
+    peft: False
+    model_type: SequenceClassification
+    pretrain_model_path: "FacebookAI/roberta-base"
+    output_model_path: "./model_outputs"
+    output_fp32_model: False
+    low_cpu_mem_usage: False
+    trust_remote_code: True
+    token: None
+    cache_dir: "/hpc2hdd/home/fwang380/dongjunwei/llm_trainer/dataset_auxiliary/text-classification/glue"
+    model_revision: "main"
+    ignore_mismatched_sizes: False
+
+
+tokenizer-params:
+    pretrain_tokenizer_path: "FacebookAI/roberta-base"
+    use_fast: True
+    max_len: 1024
+    batch_pad_truncate: True # truncate samples in batch level, if true, can set a higger batchsize, the training will significantly accelerate, however, when the data is long, use this may OOM
+    ignore_q: True # if ignore the question and prompt in samples
+
+trainer-params:
+    wandb_project_name: Roberata # a project contains a series of runs[`run_name`], which can be shown in webui
+    run_name: qqp_linear_ep20_lr2e-5_ft_r2a4 # a wandb trail run name
+    seed: 42
+    # data_seed: 42
+    dataloader_pin_memory: True
+    output_dir: "model_output/roberta_finetune/qqp"
+    num_train_epochs: 20
+    do_eval: True
+    do_train: True
+    evaluation_strategy: "epoch"
+    per_device_eval_batch_size: 64
+    per_device_train_batch_size: 32 # peft:32
+    gradient_accumulation_steps: 1
+    gradient_checkpointing: False # if True, save more memory in bp stage
+    save_strategy: "epoch" # if not use resume either ft, continue pretrain, try to keep this key 'no'
+    optim: adamw_torch # torch >= 2.0
+    learning_rate: 0.00002 # peft:0.0008
+    weight_decay: 0.0001
+    # adam_beta1: 0.9
+    # adam_beta2: 0.95
+    lr_scheduler_type: linear
+    warmup_ratio: 0.06
+    logging_strategy: "steps"
+    logging_steps: 5
+    # log_on_each_node: False # just logging in main node
+    # bf16: False
+    # fp16: True
+    remove_unused_columns: True
+
+peft-params: ~

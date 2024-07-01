@@ -1,0 +1,62 @@
+data-params:
+    dataset_class_name: SIQADataset
+    train_file: social_i_qa
+    eval_file: social_i_qa
+    eval_fn: "siqa_acc"
+data-params:
+    dataset_class_name: BoolqDataset
+    train_file: super_glue-boolq
+    eval_file: super_glue-boolq
+    eval_fn: "boolq_acc"
+data-params:
+    dataset_class_name: RecordDataset
+    train_file: super_glue-record
+    eval_file: super_glue-record
+    eval_fn: "record_metrics"
+
+dataset_class_name: CNNDailymailDataset
+    train_file: cnn_dailymail
+    eval_file: cnn_dailymail
+    eval_fn: "cnn_dailymail_metrics"
+    tokenizer-params:
+        max_len: 2048
+    generation_config:
+        max_length: 2048
+        max_new_tokens: 256
+
+dataset_class_name: SamSumDataset
+    train_file: samsum
+    eval_file: samsum
+    eval_fn: "samsum_metric"
+    per_device_eval_batch_size: 32
+    per_device_train_batch_size: 12
+    tokenizer-params:
+        max_len: 1024
+    generation_config:
+        max_length: 1024
+        max_new_tokens: 128
+
+# dataset_class_name: GSM8KDataset
+#     train_file: gsm8k
+#     eval_file: gsm8k
+#     eval_fn: "gsm8k_metrics"
+#     per_device_eval_batch_size: 256
+#     per_device_train_batch_size: 64
+#     tokenizer-params:
+#         max_len: 512
+#     generation_config:
+#         max_length: 512
+#         max_new_tokens: 256
+
+dataset_class_name: XSumDataset
+    train_file: xsum
+    train_size: 10000
+    eval_file: xsum
+    eval_fn: "xsum_metrics"
+    per_device_eval_batch_size: 16
+    per_device_train_batch_size: 16
+    tokenizer-params:
+        max_len: 1024
+    generation_config:
+        max_length: 100
+        max_new_tokens: 256

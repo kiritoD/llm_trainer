@@ -1,0 +1,118 @@
+PeftModelForCausalLM(
+  (base_model): NASLoraModel(
+    (model): LlamaForCausalLM(
+      (model): LlamaModel(
+        (embed_tokens): Embedding(32001, 4096)
+        (layers): ModuleList(
+          (0): LlamaDecoderLayer(
+            (self_attn): LlamaAttention(
+              (q_proj): Linear(
+                in_features=4096, out_features=4096, bias=False
+                (naslora_module): ModuleDict(
+                  (default): ModuleList(
+                    (0): ModuleList(
+                      (0): Linear(in_features=4096, out_features=2, bias=False)
+                      (1): Linear(in_features=2, out_features=4096, bias=False)
+                    )
+                  )
+                )
+                (naslora_weights): ParameterDict()
+              )
+              (k_proj): Linear(
+                in_features=4096, out_features=4096, bias=False
+                (naslora_module): ModuleDict(
+                  (default): ModuleList(
+                    (0): ModuleList(
+                      (0): Linear(in_features=4096, out_features=2, bias=False)
+                      (1): Linear(in_features=2, out_features=4096, bias=False)
+                    )
+                  )
+                )
+                (naslora_weights): ParameterDict()
+              )
+              (v_proj): Linear(
+                in_features=4096, out_features=4096, bias=False
+                (naslora_module): ModuleDict(
+                  (default): ModuleList(
+                    (0): ModuleList(
+                      (0): Linear(in_features=4096, out_features=2, bias=False)
+                      (1): Linear(in_features=2, out_features=4096, bias=False)
+                    )
+                  )
+                )
+                (naslora_weights): ParameterDict()
+              )
+              (o_proj): Linear(
+                in_features=4096, out_features=4096, bias=False
+                (naslora_module): ModuleDict(
+                  (default): ModuleList(
+                    (0): ModuleList(
+                      (0): Linear(in_features=4096, out_features=2, bias=False)
+                      (1): Linear(in_features=2, out_features=4096, bias=False)
+                    )
+                  )
+                )
+                (naslora_weights): ParameterDict()
+              )
+              (rotary_emb): LlamaRotaryEmbedding()
+            )
+            (mlp): LlamaMLP(
+              (gate_proj): Linear(
+                in_features=4096, out_features=11008, bias=False
+                (naslora_module): ModuleDict(
+                  (default): ModuleList(
+                    (0): ModuleList(
+                      (0): Linear(in_features=4096, out_features=2, bias=False)
+                      (1): Linear(in_features=2, out_features=11008, bias=False)
+                    )
+                  )
+                )
+                (naslora_weights): ParameterDict()
+              )
+              (up_proj): Linear(
+                in_features=4096, out_features=11008, bias=False
+                (naslora_module): ModuleDict(
+                  (default): ModuleList(
+                    (0): ModuleList(
+                      (0): Linear(in_features=4096, out_features=2, bias=False)
+                      (1): Linear(in_features=2, out_features=11008, bias=False)
+                    )
+                  )
+                )
+                (naslora_weights): ParameterDict()
+              )
+              (down_proj): Linear(
+                in_features=11008, out_features=4096, bias=False
+                (naslora_module): ModuleDict(
+                  (default): ModuleList(
+                    (0): ModuleList(
+                      (0): Linear(in_features=11008, out_features=2, bias=False)
+                      (1): Linear(in_features=2, out_features=4096, bias=False)
+                    )
+                  )
+                )
+                (naslora_weights): ParameterDict()
+              )
+              (act_fn): SiLUActivation()
+            )
+            (input_layernorm): LlamaRMSNorm()
+            (post_attention_layernorm): LlamaRMSNorm()
+          )
+        )
+        (norm): LlamaRMSNorm()
+      )
+      (lm_head): Linear(
+        in_features=4096, out_features=32001, bias=False
+        (naslora_module): ModuleDict(
+          (default): ModuleList(
+            (0): ModuleList(
+              (0): Linear(in_features=4096, out_features=2, bias=False)
+              (1): Linear(in_features=2, out_features=32001, bias=False)
+            )
+          )
+        )
+        (naslora_weights): ParameterDict()
+      )
+    )
+  )
+)
