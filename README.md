@@ -26,3 +26,7 @@ bash scripts/train.sh ./config/train/superglue/a-lora42.yml
 ```shell
 bash scripts/inference.py ./config/inference/llama/super_glue/sg_v1.yml
 ```
+
+## Experiments on [commonsense reasoning tasks](https://github.com/NVlabs/DoRA/tree/main/commonsense_reasoning)
+## Experiments on [SuperGLUE](https://super.gluebenchmark.com/)
+## Experiments on [GLUE]()

@@ -130,7 +130,8 @@ def train(
     train_result = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     # save the model
-    trainer.save_model()
+    if not model_params["peft"]:
+        trainer.save_model()
     # log the train metrics
     if model_params["model_type"] == "SequenceClassification":
         metrics = train_result.metrics

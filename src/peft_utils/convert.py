@@ -4,16 +4,29 @@ from typing import Any, Dict, Union
 
 import torch
 
+# from ..peft_a_lora import (
+#     AdaLoraConfig,
+#     LoraConfig,
+#     NASLoraConfig,
+#     PeftModel,
+#     PrefixTuningConfig,
+#     PromptEncoderConfig,
+#     PromptTuningConfig,
+#     get_peft_config,
+#     get_peft_model,
+# )
 from ..peft import (
     AdaLoraConfig,
     LoraConfig,
-    NASLoraConfig,
+    Lora_AConfig,
     PeftModel,
     PrefixTuningConfig,
     PromptEncoderConfig,
     PromptTuningConfig,
     get_peft_config,
     get_peft_model,
+    NASLoraConfig,
+    VeraConfig
 )
 
 # from peft import (
@@ -30,13 +43,24 @@ from ..utils.logging import get_logger, rank_zero_info
 
 logger = get_logger("PEFT")
 
+# PEFT_TYPE_2_CONFIG_MAPPING = {
+#     "lora": LoraConfig,
+#     "p_tuning": PromptEncoderConfig,
+#     "adalora": AdaLoraConfig,
+#     "naslora": NASLoraConfig,
+#     "prefix_tuning": PrefixTuningConfig,
+#     "prompt_tuning": PromptTuningConfig,
+# }
+
 PEFT_TYPE_2_CONFIG_MAPPING = {
     "lora": LoraConfig,
     "p_tuning": PromptEncoderConfig,
     "adalora": AdaLoraConfig,
-    "naslora": NASLoraConfig,
+    "lora_a": Lora_AConfig,
     "prefix_tuning": PrefixTuningConfig,
     "prompt_tuning": PromptTuningConfig,
+    "naslora": NASLoraConfig,
+    "vera": VeraConfig
 }
 
 

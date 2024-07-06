@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from transformers.trainer_callback import TrainerState
 
 from ..peft.tuners.naslora import NASLoraModel
-from ..peft.utils.config import PeftConfig
+from ..peft.tuners.lora import LoraConfig
 from ..utils.logging import get_logger, rank_zero_info
 
 logger = get_logger("Search Policy")
@@ -17,7 +17,7 @@ rank_zero_info = partial(rank_zero_info, logger=logger)
 class Search_Policy:
     _state_dict: TrainerState = None
     _model: NASLoraModel = None
-    _peft_config: PeftConfig = None
+    _peft_config: LoraConfig = None
     _active_status: bool = False
     _current_mode: int = -1
     _log: bool = False
@@ -26,7 +26,7 @@ class Search_Policy:
     _totalization_loss: float = 0.0
 
     @classmethod
-    def policy_handler(cls, state_dict: TrainerState, model: nn.Module, peft_config: PeftConfig) -> None:
+    def policy_handler(cls, state_dict: TrainerState, model: nn.Module, peft_config: LoraConfig) -> None:
         """a policy handler which is used to handle the policy
 
         Parameters
@@ -35,7 +35,7 @@ class Search_Policy:
             trainer state, contains loss, step, ...
         model : nn.Module
             a PeftModel
-        peft_config : PeftConfig
+        peft_config : LoraConfig
             a peft config
         """
         cls._state_dict = state_dict
