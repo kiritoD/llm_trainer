@@ -1,1 +1,0 @@
-python -m debugpy --connect 10.120.18.243:6032 $1
