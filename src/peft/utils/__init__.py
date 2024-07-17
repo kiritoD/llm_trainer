@@ -30,6 +30,8 @@ from .other import (
     TRANSFORMERS_MODELS_TO_VERA_TARGET_MODULES_MAPPING,
     TRANSFORMERS_MODELS_TO_NASLORA_TARGET_MODULES_MAPPING,
     TRANSFORMERS_MODELS_TO_LORA_A_TARGET_MODULES_MAPPING,
+    TRANSFORMERS_MODELS_TO_LOCP_TARGET_MODULES_MAPPING,
+    TRANSFORMERS_MODELS_TO_HSSA_TARGET_MODULES_MAPPING,
     CONFIG_NAME,
     WEIGHTS_NAME,
     SAFETENSORS_WEIGHTS_NAME,
@@ -52,4 +54,8 @@ from .other import (
     id_tensor_storage,
     cast_mixed_precision_params,
 )
-from .save_and_load import get_peft_model_state_dict, set_peft_model_state_dict, load_peft_weights
+from .save_and_load import (
+    get_peft_model_state_dict,
+    set_peft_model_state_dict,
+    load_peft_weights,
+)

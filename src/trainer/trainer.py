@@ -42,11 +42,13 @@ from ..utils.logging import get_logger
 
 logger = get_logger("Trainer")
 
+
 class StepLR(torch.optim.lr_scheduler.StepLR):
     def get_lr(self):
         if not self._get_lr_called_within_step:
             warnings.warn(
-                "To get the last learning rate computed by the scheduler, " "please use `get_last_lr()`.",
+                "To get the last learning rate computed by the scheduler, "
+                "please use `get_last_lr()`.",
                 UserWarning,
             )
 
@@ -62,7 +64,8 @@ class ConsineLR(torch.optim.lr_scheduler.CosineAnnealingLR):
     def get_lr(self):
         if not self._get_lr_called_within_step:
             warnings.warn(
-                "To get the last learning rate computed by the scheduler, " "please use `get_last_lr()`.",
+                "To get the last learning rate computed by the scheduler, "
+                "please use `get_last_lr()`.",
                 UserWarning,
             )
 
@@ -70,12 +73,16 @@ class ConsineLR(torch.optim.lr_scheduler.CosineAnnealingLR):
             return [group["lr"] for group in self.optimizer.param_groups]
         elif self._step_count == 1 and self.last_epoch > 0:
             return [
-                self.eta_min + (base_lr - self.eta_min) * (1 + math.cos((self.last_epoch) * math.pi / self.T_max)) / 2
+                self.eta_min
+                + (base_lr - self.eta_min)
+                * (1 + math.cos((self.last_epoch) * math.pi / self.T_max))
+                / 2
                 for base_lr, group in zip(self.base_lrs, self.optimizer.param_groups)
             ]
         elif (self.last_epoch - 1 - self.T_max) % (2 * self.T_max) == 0:
             return [
-                group["lr"] + (base_lr - self.eta_min) * (1 - math.cos(math.pi / self.T_max)) / 2
+                group["lr"]
+                + (base_lr - self.eta_min) * (1 - math.cos(math.pi / self.T_max)) / 2
                 for base_lr, group in zip(self.base_lrs, self.optimizer.param_groups)
             ]
         return [
@@ -88,7 +95,15 @@ class ConsineLR(torch.optim.lr_scheduler.CosineAnnealingLR):
 
 
 @dataclass
-class CausalFtTrainingArguments(Seq2SeqTrainingArguments):
+class BaseTrainingArguments:
+    learning_rate_head: float = field(
+        default=4e-3,
+        metadata={"help": ("specific learning rate for head")},
+    )
+
+
+@dataclass
+class CausalFtTrainingArguments(BaseTrainingArguments, Seq2SeqTrainingArguments):
     wandb_project_name: str = field(
         default="LLM_TRAIN",
         metadata={"help": ("wandb project name wich contains a series of runs")},
@@ -115,8 +130,9 @@ class CausalFtTrainingArguments(Seq2SeqTrainingArguments):
         metadata={"help": ("specification for dataset")},
     )
 
+
 @dataclass
-class SequenceClassifyTrainingArguments(TrainingArguments):
+class SequenceClassifyTrainingArguments(BaseTrainingArguments, TrainingArguments):
     wandb_project_name: str = field(
         default="LLM_TRAIN",
         metadata={"help": ("wandb project name wich contains a series of runs")},
@@ -125,7 +141,7 @@ class SequenceClassifyTrainingArguments(TrainingArguments):
         default=True,
         metadata={"help": ("if train peft model")},
     )
-    
+
     eval_fn: Optional[str] = field(
         default="",
         metadata={"help": ("evaluation for dataset")},
@@ -134,14 +150,18 @@ class SequenceClassifyTrainingArguments(TrainingArguments):
         default=None,
         metadata={"help": ("specification for dataset")},
     )
-    
+
 
 class LLMCallback(TrainerCallback):
     "A callback that output infomation and do some operators"
 
     def save_top_n_adapters(self, model, peft_config, state):
-        if (peft_config.search_strategy == "step" and state.global_step == peft_config.search_step) or (
-            peft_config.search_strategy == "epoch" and state.epoch >= peft_config.search_step
+        if (
+            peft_config.search_strategy == "step"
+            and state.global_step == peft_config.search_step
+        ) or (
+            peft_config.search_strategy == "epoch"
+            and state.epoch >= peft_config.search_step
         ):
             model.save_top_n_adapters()
             model.print_trainable_parameters()
@@ -212,7 +232,11 @@ class LLMCallback(TrainerCallback):
             if args.do_eval and self.args_check(args):
                 self.merge_files(args.prediction_file_name)
             # for adapter save
-            if args.peft and peft_str in str(type(model_)) and not is_deepspeed_zero3_enabled():
+            if (
+                args.peft
+                and peft_str in str(type(model_))
+                and not is_deepspeed_zero3_enabled()
+            ):
                 # if model is peft-based, save the extra weights, zero3 not supprot
                 peft_type = getattr(model_.peft_type, "name", None)
                 peft_type = "peft" if not peft_type else peft_type
@@ -220,8 +244,10 @@ class LLMCallback(TrainerCallback):
                 output_dir = os.path.join(args.output_dir, peft_type, epoch)
                 os.makedirs(output_dir, exist_ok=True)
                 model_.save_pretrained(output_dir)
+
     def args_check(self, args):
         return "CausalFtTrainingArguments" in str(type(args))
+
     def on_step_begin(
         self,
         args: TrainingArguments,
@@ -318,6 +344,110 @@ class LLMCallback(TrainerCallback):
         return super().on_predict(args, state, control, metrics, **kwargs)
 
 
+class TrainerAuxiliary:
+    @classmethod
+    def optimizer_grouped_parameters(
+        cls, decay_parameters, opt_model, args, is_naslora=False, **extra_args
+    ):
+        if not is_naslora:
+            optimizer_grouped_parameters = [
+                {
+                    "params": [
+                        p
+                        for n, p in opt_model.named_parameters()
+                        if (
+                            n in decay_parameters
+                            and p.requires_grad
+                            and "classifier" not in n
+                        )
+                    ],
+                    "weight_decay": args.weight_decay,
+                },
+                {
+                    "params": [
+                        p
+                        for n, p in opt_model.named_parameters()
+                        if (n not in decay_parameters and p.requires_grad)
+                    ],
+                    "weight_decay": 0.0,
+                },
+                {
+                    "params": [
+                        p
+                        for n, p in opt_model.named_parameters()
+                        if (
+                            n in decay_parameters
+                            and p.requires_grad
+                            and "classifier" in n
+                        )
+                    ],
+                    "lr": args.learning_rate_head,
+                    "weight_decay": args.weight_decay,
+                },
+            ]
+        else:
+            naslora_weights_lr = extra_args["naslora_weights_lr"]
+            optimizer_grouped_parameters = [
+                {
+                    "params": [
+                        p
+                        for n, p in opt_model.named_parameters()
+                        if (n in decay_parameters and p.requires_grad)
+                        and (
+                            not is_naslora
+                            or "naslora_module" in n
+                            or "naslora_layernorms" in n
+                        )
+                        and "classifier" not in n
+                    ],
+                    "weight_decay": args.weight_decay,
+                },
+                {
+                    "params": [
+                        p
+                        for n, p in opt_model.named_parameters()
+                        if (n in decay_parameters and p.requires_grad)
+                        and (
+                            not is_naslora
+                            or "naslora_module" in n
+                            or "naslora_layernorms" in n
+                        )
+                        and "classifier" in n
+                    ],
+                    "weight_decay": args.weight_decay,
+                    "lr": args.learning_rate_head,
+                },
+                {
+                    "params": [
+                        p
+                        for n, p in opt_model.named_parameters()
+                        if (n in decay_parameters and p.requires_grad)
+                        and (is_naslora and "naslora_weights" in n)
+                    ],
+                    "lr": naslora_weights_lr,
+                },
+                {
+                    "params": [
+                        p
+                        for n, p in opt_model.named_parameters()
+                        if (n not in decay_parameters and p.requires_grad)
+                    ],
+                    "weight_decay": 0.0,
+                },
+            ]
+
+        return optimizer_grouped_parameters
+
+    @classmethod
+    def log_update(cls, logs, trainer):
+        logs.update(trainer.statisic())
+        if isinstance(getattr(trainer, "extra_trace_dict", None), dict):
+            logs.update(trainer.extra_trace_dict)
+        learning_rate_head = trainer.lr_scheduler._last_lr[-1]
+        logs.update({"learning_rate_head": learning_rate_head})
+        return logs
+
+
 class CausalFtTrainer(Seq2SeqTrainer):
     def __init__(
         self,
@@ -334,7 +464,9 @@ class CausalFtTrainer(Seq2SeqTrainer):
             None,
         ),
         model_init: Optional[Callable[[], PreTrainedModel]] = None,
-        preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
+        preprocess_logits_for_metrics: Optional[
+            Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> None:
         # TODO: change the base class to Trainer
         self.combine_causal_loss_factor = params.pop("combine_causal_loss_factor", 0)
@@ -372,9 +504,13 @@ class CausalFtTrainer(Seq2SeqTrainer):
         train_dataset = self.train_dataset
         data_collator = self.data_collator
         if is_datasets_available() and isinstance(train_dataset, datasets.Dataset):
-            train_dataset = self._remove_unused_columns(train_dataset, description="training")
+            train_dataset = self._remove_unused_columns(
+                train_dataset, description="training"
+            )
         else:
-            data_collator = self._get_collator_with_removed_columns(data_collator, description="training")
+            data_collator = self._get_collator_with_removed_columns(
+                data_collator, description="training"
+            )
         train_sampler = self._get_train_sampler()
         data_collator = partial(data_collator, mode="train")
         return DataLoader(
@@ -405,9 +541,13 @@ class CausalFtTrainer(Seq2SeqTrainer):
         data_collator = self.data_collator
 
         if is_datasets_available() and isinstance(eval_dataset, datasets.Dataset):
-            eval_dataset = self._remove_unused_columns(eval_dataset, description="evaluation")
+            eval_dataset = self._remove_unused_columns(
+                eval_dataset, description="evaluation"
+            )
         else:
-            data_collator = self._get_collator_with_removed_columns(data_collator, description="evaluation")
+            data_collator = self._get_collator_with_removed_columns(
+                data_collator, description="evaluation"
+            )
 
         eval_sampler = self._get_eval_sampler(eval_dataset)
 
@@ -427,7 +567,9 @@ class CausalFtTrainer(Seq2SeqTrainer):
         if peft_config:
             num_virtual_tokens = getattr(peft_config, "num_virtual_tokens", 0)
             if num_virtual_tokens > 0:
-                prefix_labels = torch.full((raw_labels.size(0), num_virtual_tokens), -100).to(raw_labels.device)
+                prefix_labels = torch.full(
+                    (raw_labels.size(0), num_virtual_tokens), -100
+                ).to(raw_labels.device)
                 raw_labels = torch.cat((prefix_labels, raw_labels), dim=1)
         return raw_labels
 
@@ -501,8 +643,12 @@ class CausalFtTrainer(Seq2SeqTrainer):
         }
         self.arch_parameters = getattr(self.model, "arch_parameters", [])
         if len(self.arch_parameters) > 0:
-            log_dict["first_arch_param"] = self.arch_parameters[0].cpu().to(torch.float16).tolist()
-            log_dict["last_arch_param"] = self.arch_parameters[-1].cpu().to(torch.float16).tolist()
+            log_dict["first_arch_param"] = (
+                self.arch_parameters[0].cpu().to(torch.float16).tolist()
+            )
+            log_dict["last_arch_param"] = (
+                self.arch_parameters[-1].cpu().to(torch.float16).tolist()
+            )
         if getattr(self.state, "losses", None):
             log_dict.update(self.state.losses)
         search_step = int(self.state.max_steps / self.state.num_train_epochs)
@@ -516,8 +662,11 @@ class CausalFtTrainer(Seq2SeqTrainer):
                 == "step"
             ):
                 # just for naslora serach step
-                search_step = getattr(self.model.peft_config["default"], "search_step", 0)
+                search_step = getattr(
+                    self.model.peft_config["default"], "search_step", 0
+                )
 
+        # todo (djw): head learning rate may make influence on the naslora_weights_lr when logging
         if search_step is not None and self.state.global_step < search_step + 5:
             log_dict.update(Model.count_pramameter(self.model, verbose=False))
         if search_step is not None and self.state.global_step < search_step:
@@ -548,9 +697,7 @@ class CausalFtTrainer(Seq2SeqTrainer):
         Returns
         -------
         """
-        logs.update(self.statisic())
-        if isinstance(self.extra_trace_dict, dict):
-            logs.update(self.extra_trace_dict)
+        TrainerAuxiliary.log_update(logs, self)
         return super().log(logs)
 
     def save_model(self, output_dir: str = None, _internal_call: bool = False):
@@ -563,7 +710,9 @@ class CausalFtTrainer(Seq2SeqTrainer):
         metric_key_prefix: str = "eval",
         **gen_kwargs,
     ) -> Dict[str, float]:
-        results = super().evaluate(eval_dataset, ignore_keys, metric_key_prefix, **gen_kwargs)
+        results = super().evaluate(
+            eval_dataset, ignore_keys, metric_key_prefix, **gen_kwargs
+        )
         if dist.get_rank() == 0:
             # due to multiprocess, just do evaluation in rank 0
             metric = {}
@@ -605,33 +754,51 @@ class CausalFtTrainer(Seq2SeqTrainer):
         if self.optimizer is None:
             decay_parameters = get_parameter_names(opt_model, ALL_LAYERNORM_LAYERS)
             decay_parameters = [name for name in decay_parameters if "bias" not in name]
-            optimizer_grouped_parameters = [
-                {
-                    "params": [
-                        p
-                        for n, p in opt_model.named_parameters()
-                        if (n in decay_parameters and p.requires_grad)
-                        and (not is_naslora or "naslora_module" in n or "naslora_layernorms" in n)
-                    ],
-                    "weight_decay": self.args.weight_decay,
-                },
-                {
-                    "params": [
-                        p
-                        for n, p in opt_model.named_parameters()
-                        if (n in decay_parameters and p.requires_grad) and (is_naslora and "naslora_weights" in n)
-                    ],
-                    "lr": naslora_weights_lr,
-                },
-                {
-                    "params": [
-                        p for n, p in opt_model.named_parameters() if (n not in decay_parameters and p.requires_grad)
-                    ],
-                    "weight_decay": 0.0,
-                },
-            ]
+            # optimizer_grouped_parameters = [
+            #     {
+            #         "params": [
+            #             p
+            #             for n, p in opt_model.named_parameters()
+            #             if (n in decay_parameters and p.requires_grad)
+            #             and (
+            #                 not is_naslora
+            #                 or "naslora_module" in n
+            #                 or "naslora_layernorms" in n
+            #             )
+            #         ],
+            #         "weight_decay": self.args.weight_decay,
+            #     },
+            #     {
+            #         "params": [
+            #             p
+            #             for n, p in opt_model.named_parameters()
+            #             if (n in decay_parameters and p.requires_grad)
+            #             and (is_naslora and "naslora_weights" in n)
+            #         ],
+            #         "lr": naslora_weights_lr,
+            #     },
+            #     {
+            #         "params": [
+            #             p
+            #             for n, p in opt_model.named_parameters()
+            #             if (n not in decay_parameters and p.requires_grad)
+            #         ],
+            #         "weight_decay": 0.0,
+            #     },
+            # ]
+            optimizer_grouped_parameters = (
+                TrainerAuxiliary.optimizer_grouped_parameters(
+                    decay_parameters,
+                    opt_model,
+                    self.args,
+                    is_naslora,
+                    naslora_weights_lr=naslora_weights_lr,
+                )
+            )
 
-            optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args, opt_model)
+            optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(
+                self.args, opt_model
+            )
 
             # Overwrite `params` in case it's created by `get_optimizer_cls_and_kwargs`
             # e.g. for GaLore optimizer.
@@ -648,7 +815,9 @@ class CausalFtTrainer(Seq2SeqTrainer):
             if "optimizer_dict" in optimizer_kwargs:
                 optimizer_grouped_parameters = optimizer_kwargs.pop("optimizer_dict")
 
-            self.optimizer = optimizer_cls(optimizer_grouped_parameters, **optimizer_kwargs)
+            self.optimizer = optimizer_cls(
+                optimizer_grouped_parameters, **optimizer_kwargs
+            )
 
             if optimizer_cls.__name__ == "Adam8bit":
                 import bitsandbytes
@@ -658,9 +827,15 @@ class CausalFtTrainer(Seq2SeqTrainer):
                 skipped = 0
                 for module in opt_model.modules():
                     if isinstance(module, nn.Embedding):
-                        skipped += sum({p.data_ptr(): p.numel() for p in module.parameters()}.values())
+                        skipped += sum(
+                            {
+                                p.data_ptr(): p.numel() for p in module.parameters()
+                            }.values()
+                        )
                         logger.info(f"skipped {module}: {skipped/2**20}M params")
-                        manager.register_module_override(module, "weight", {"optim_bits": 32})
+                        manager.register_module_override(
+                            module, "weight", {"optim_bits": 32}
+                        )
                         logger.debug(f"bitsandbytes: will optimize {module} in fp32")
                 logger.info(f"skipped: {skipped/2**20}M params")
 
@@ -733,12 +908,19 @@ class CausalFtTrainer(Seq2SeqTrainer):
         self.test_length = len(test_dataset)
         # for arnold
         if os.environ.get("ARNOLD_WORKER_GPU", None):
-            self.gpu_number = int(os.environ.get("ARNOLD_WORKER_GPU", 1)) * int(os.environ.get("ARNOLD_WORKER_NUM", 1))
+            self.gpu_number = int(os.environ.get("ARNOLD_WORKER_GPU", 1)) * int(
+                os.environ.get("ARNOLD_WORKER_NUM", 1)
+            )
         else:
             self.gpu_number = torch.cuda.device_count()
-        self.total_step = math.ceil(self.test_length // (self.params["per_device_eval_batch_size"] * self.gpu_number))
+        self.total_step = math.ceil(
+            self.test_length
+            // (self.params["per_device_eval_batch_size"] * self.gpu_number)
+        )
         self.current_step = 0
-        return super().predict(test_dataset, ignore_keys, metric_key_prefix, **gen_kwargs)
+        return super().predict(
+            test_dataset, ignore_keys, metric_key_prefix, **gen_kwargs
+        )
 
     def prediction_step(
         self,
@@ -790,14 +972,21 @@ class CausalFtTrainer(Seq2SeqTrainer):
         # Priority (handled in generate):
         # gen_kwargs > model.generation_config > default GenerationConfig()
         gen_kwargs = self._gen_kwargs.copy()
-        if gen_kwargs.get("max_length") is None and gen_kwargs.get("max_new_tokens") is None:
+        if (
+            gen_kwargs.get("max_length") is None
+            and gen_kwargs.get("max_new_tokens") is None
+        ):
             gen_kwargs["max_length"] = self.model.config.max_length
         gen_kwargs["num_beams"] = (
-            gen_kwargs["num_beams"] if gen_kwargs.get("num_beams") is not None else self.model.config.num_beams
+            gen_kwargs["num_beams"]
+            if gen_kwargs.get("num_beams") is not None
+            else self.model.config.num_beams
         )
         default_synced_gpus = True if is_deepspeed_zero3_enabled() else False
         gen_kwargs["synced_gpus"] = (
-            gen_kwargs["synced_gpus"] if gen_kwargs.get("synced_gpus") is not None else default_synced_gpus
+            gen_kwargs["synced_gpus"]
+            if gen_kwargs.get("synced_gpus") is not None
+            else default_synced_gpus
         )
 
         # If the `decoder_input_ids` was created from `labels`, evict the former, so that the model can freely generate
@@ -841,7 +1030,10 @@ class CausalFtTrainer(Seq2SeqTrainer):
                 if len(care_token_ids) > 0:
                     target_scores = target_scores[:, care_token_ids]
                 probs = (
-                    torch.nn.functional.softmax(target_scores, dim=1).type(torch.float32).cpu().numpy()
+                    torch.nn.functional.softmax(target_scores, dim=1)
+                    .type(torch.float32)
+                    .cpu()
+                    .numpy()
                 )  # bf16 should change type to torch.float32, so use torch.float32 to convert
                 for _ in range(generated_str_length):
                     index_probs = generated_tokens[_][index_]
@@ -877,18 +1069,31 @@ class CausalFtTrainer(Seq2SeqTrainer):
         gen_config = self.model.generation_config
         # in case the batch is shorter than max length, the output should be padded
         if generated_tokens.shape[-1] < gen_config.max_length:
-            generated_tokens = self._pad_tensors_to_max_len(generated_tokens, gen_config.max_length)
-        elif gen_config.max_new_tokens is not None and generated_tokens.shape[-1] < gen_config.max_new_tokens + 1:
-            generated_tokens = self._pad_tensors_to_max_len(generated_tokens, gen_config.max_new_tokens + 1)
+            generated_tokens = self._pad_tensors_to_max_len(
+                generated_tokens, gen_config.max_length
+            )
+        elif (
+            gen_config.max_new_tokens is not None
+            and generated_tokens.shape[-1] < gen_config.max_new_tokens + 1
+        ):
+            generated_tokens = self._pad_tensors_to_max_len(
+                generated_tokens, gen_config.max_new_tokens + 1
+            )
 
         with torch.no_grad():
             if has_labels:
                 with self.compute_loss_context_manager():
                     outputs = model(**inputs)
                 if self.label_smoother is not None:
-                    loss = self.label_smoother(outputs, inputs["labels"]).mean().detach()
+                    loss = (
+                        self.label_smoother(outputs, inputs["labels"]).mean().detach()
+                    )
                 else:
-                    loss = (outputs["loss"] if isinstance(outputs, dict) else outputs[0]).mean().detach()
+                    loss = (
+                        (outputs["loss"] if isinstance(outputs, dict) else outputs[0])
+                        .mean()
+                        .detach()
+                    )
             else:
                 loss = None
 
@@ -899,8 +1104,13 @@ class CausalFtTrainer(Seq2SeqTrainer):
             labels = inputs["labels"]
             if labels.shape[-1] < gen_config.max_length:
                 labels = self._pad_tensors_to_max_len(labels, gen_config.max_length)
-            elif gen_config.max_new_tokens is not None and labels.shape[-1] < gen_config.max_new_tokens + 1:
-                labels = self._pad_tensors_to_max_len(labels, gen_config.max_new_tokens + 1)
+            elif (
+                gen_config.max_new_tokens is not None
+                and labels.shape[-1] < gen_config.max_new_tokens + 1
+            ):
+                labels = self._pad_tensors_to_max_len(
+                    labels, gen_config.max_new_tokens + 1
+                )
         else:
             labels = None
 
@@ -908,13 +1118,19 @@ class CausalFtTrainer(Seq2SeqTrainer):
 
         if dist.get_rank() == 0 and not self.args.do_eval:
             if self.current_step % self.params["logging_steps"] == 0:
-                ground_truth_ = self.decode([gd_truth[0].cpu().numpy()]) if gd_truth is not None else None
+                ground_truth_ = (
+                    self.decode([gd_truth[0].cpu().numpy()])
+                    if gd_truth is not None
+                    else None
+                )
                 output = self.decode([generated_tokens[0].cpu().numpy()])
                 logger.info(
                     f"[GPU_{dist.get_rank()}, {self.current_step}/{self.total_step}]: \n ground_truth: {ground_truth_[0]} \n output: {output[0]}"
                 )
             self.current_step += 1
-        self._output_generate_results(inputs, generated_tokens, gd_truth, generated_token_probs, data_id)
+        self._output_generate_results(
+            inputs, generated_tokens, gd_truth, generated_token_probs, data_id
+        )
         generated_tokens = torch.tensor([1]).cuda(f"cuda:{dist.get_rank()}")
         # logger.info(f"rank: {dist.get_rank()}-{inputs['input_ids'].size()} over")
         return loss, generated_tokens, labels
@@ -972,7 +1188,9 @@ class CausalFtTrainer(Seq2SeqTrainer):
 
         generated_tokens = list(
             map(
-                lambda x: self.tokenizer.convert_ids_to_tokens(x)[: len(generated_token_probs[0])],
+                lambda x: self.tokenizer.convert_ids_to_tokens(x)[
+                    : len(generated_token_probs[0])
+                ],
                 generated_a,
             )
         )
@@ -1057,7 +1275,9 @@ class SequenceClassificationTrainer(Trainer):
             None,
         ),
         model_init: Optional[Callable[[], PreTrainedModel]] = None,
-        preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
+        preprocess_logits_for_metrics: Optional[
+            Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+        ] = None,
     ) -> None:
         # TODO: change the base class to Trainer
         self.params = params
@@ -1066,7 +1286,7 @@ class SequenceClassificationTrainer(Trainer):
         dist.barrier()
 
         self.arguments = SequenceClassifyTrainingArguments(**self.params)
-        
+
         # Trainer.__init__(
         super().__init__(
             model=model,
@@ -1082,9 +1302,79 @@ class SequenceClassificationTrainer(Trainer):
             model_init=model_init,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
-    # def create_optimizer(self):
-    #     return super().create_optimizer()
-        
+
+    def create_optimizer(self):
+        """
+        Setup the optimizer.
+
+        We provide a reasonable default that works well. If you want to use something else, you can pass a tuple in the
+        Trainer's init through `optimizers`, or subclass and override this method in a subclass.
+        """
+        opt_model = self.model_wrapped if is_sagemaker_mp_enabled() else self.model
+        if self.optimizer is None:
+            decay_parameters = self.get_decay_parameter_names(opt_model)
+            optimizer_grouped_parameters = (
+                TrainerAuxiliary.optimizer_grouped_parameters(
+                    decay_parameters, opt_model, self.args
+                )
+            )
+
+            optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(
+                self.args, opt_model
+            )
+
+            # Overwrite `params` in case it's created by `get_optimizer_cls_and_kwargs`
+            # e.g. for GaLore optimizer.
+            if "params" in optimizer_kwargs:
+                optimizer_grouped_parameters = optimizer_kwargs.pop("params")
+
+            # Overwrite `model` in case it's created by `get_optimizer_cls_and_kwargs`
+            # e.g. for LOMO optimizer.
+            if "model" in optimizer_kwargs:
+                optimizer_grouped_parameters = optimizer_kwargs.pop("model")
+
+            # For layer-wise dummy optimizers we overwrite optimizer_grouped_parameters with `optimizer_dict`
+            # to avoid arguments conflicts.
+            if "optimizer_dict" in optimizer_kwargs:
+                optimizer_grouped_parameters = optimizer_kwargs.pop("optimizer_dict")
+
+            self.optimizer = optimizer_cls(
+                optimizer_grouped_parameters, **optimizer_kwargs
+            )
+
+            if optimizer_cls.__name__ == "Adam8bit":
+                import bitsandbytes
+
+                manager = bitsandbytes.optim.GlobalOptimManager.get_instance()
+
+                skipped = 0
+                for module in opt_model.modules():
+                    if isinstance(module, nn.Embedding):
+                        skipped += sum(
+                            {
+                                p.data_ptr(): p.numel() for p in module.parameters()
+                            }.values()
+                        )
+                        logger.info(f"skipped {module}: {skipped/2**20}M params")
+                        manager.register_module_override(
+                            module, "weight", {"optim_bits": 32}
+                        )
+                        logger.debug(f"bitsandbytes: will optimize {module} in fp32")
+                logger.info(f"skipped: {skipped/2**20}M params")
+
+        return super().create_optimizer()
+
+    def statisic(self):
+        log_dict = {}
+        if self.state.global_step % 10 == 0:
+            log_dict.update(Model.count_pramameter(self.model, verbose=False))
+
+        return log_dict
+
+    def log(self, logs: Dict[str, float]) -> None:
+        TrainerAuxiliary.log_update(logs, self)
+        return super().log(logs)
+
 
 TrainerMapping = {
     "Causal": CausalFtTrainer,
