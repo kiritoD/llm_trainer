@@ -8,6 +8,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import datasets
+from httpx import get
 import jsonlines
 import numpy as np
 import src.utils.metric as metric_fn
@@ -39,6 +40,7 @@ from transformers.training_args import TrainingArguments
 
 from ..search.policy import Search_Policy
 from ..utils.logging import get_logger
+from ..utils.gpus import get_memory_free
 
 logger = get_logger("Trainer")
 
@@ -444,7 +446,13 @@ class TrainerAuxiliary:
         if isinstance(getattr(trainer, "extra_trace_dict", None), dict):
             logs.update(trainer.extra_trace_dict)
         learning_rate_head = trainer.lr_scheduler._last_lr[-1]
-        logs.update({"learning_rate_head": learning_rate_head})
+        memory_usage = get_memory_free()
+        logs.update(
+            {
+                "learning_rate_head": learning_rate_head,
+                "memory_usage": memory_usage,
+            }
+        )
         return logs
 
 

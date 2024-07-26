@@ -35,7 +35,7 @@ trainer-params:
     # data_seed: 42
     dataloader_pin_memory: True
     output_dir: "model_output/hssa/distribution_analysis/roberta/vera/wnli"
-    num_train_epochs: 20
+    num_train_epochs: 30
     do_eval: True
     do_train: True
     evaluation_strategy: "epoch"
@@ -46,7 +46,7 @@ trainer-params:
     save_strategy: "no" # if not use resume either ft, continue pretrain, try to keep this key 'no'
     optim: adamw_torch # torch >= 2.0
     learning_rate: 0.02 # peft:0.0008
-    weight_decay: 0.0001
+    weight_decay: 0.01
     # adam_beta1: 0.9
     # adam_beta2: 0.95
     lr_scheduler_type: linear
@@ -62,7 +62,7 @@ peft-params:
     peft_type: vera
     task_type: SEQ_CLS
     # target_modules: ['key', 'dense', 'value', 'query', 'decoder']
-    r: 128
+    r: 1024
     target_modules: ['key', 'dense', 'value', 'query']
     vera_dropout: 0.05
     d_initial: 0.1

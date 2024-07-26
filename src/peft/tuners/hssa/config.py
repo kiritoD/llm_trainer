@@ -96,10 +96,10 @@ class HSSAConfig(PeftConfig):
         default=False,
         metadata={"help": "Whether to use hierarchy-adaptive HSSA (H-HSSA) or not."},
     )
-    adaptive_percent: float = field(
-        default=0.8,
+    adaptive_threshold: float = field(
+        default=-1,
         metadata={
-            "help": "The percentage of the total number of `hierarchy_space_r` to be employed for HSSA."
+            "help": "The threshold of the total number of `hierarchy_space_r` to be employed for HSSA."
         },
     )
     target_modules: Optional[Union[List[str], str]] = field(

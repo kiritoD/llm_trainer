@@ -45,8 +45,8 @@ trainer-params:
     gradient_checkpointing: False # if True, save more memory in bp stage
     save_strategy: "no" # if not use resume either ft, continue pretrain, try to keep this key 'no'
     optim: adamw_torch # torch >= 2.0
-    learning_rate: 0.0002 # peft:0.0008
-    weight_decay: 0.0001
+    learning_rate: 0.004 # peft:0.0008
+    weight_decay: 0.01
     # adam_beta1: 0.9
     # adam_beta2: 0.95
     lr_scheduler_type: linear
@@ -63,8 +63,8 @@ peft-params:
     task_type: SEQ_CLS
     # target_modules: ['key', 'dense', 'value', 'query', 'decoder']
     target_modules: ['key', 'dense', 'value', 'query']
-    r: 2
-    lora_alpha: 4
+    r: 8
+    lora_alpha: 16
     lora_dropout: 0.05
     activate_fn: ~
     d_parts: 1

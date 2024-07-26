@@ -1,6 +1,7 @@
 #!/bin/bash
 WORKER_GPU=$1
 # current dir peft_llm
+# export CUDA_VISIBLE_DEVICES=2,3,6,7
 
 DEFAULT_PORT=29500
 PORT=${3:-$DEFAULT_PORT}

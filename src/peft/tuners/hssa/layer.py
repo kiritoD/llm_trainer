@@ -49,6 +49,9 @@ class HSSALayer(BaseTunerLayer):
         self.hssa_B: Optional[Union[BufferDict, nn.ParameterDict]] = None
         self.modules_weights_A: Optional[nn.ParameterDict] = None
         self.modules_weights_B: Optional[nn.ParameterDict] = None
+        self.layer_adaptive_param: Optional[nn.Parameter] = None
+        self.hierarchy_adaptive_A: Optional[nn.Parameter] = None
+        self.hierarchy_adaptive_B: Optional[nn.Parameter] = None
 
         # Mark the weight as unmerged
         self._disable_adapters = False
@@ -86,11 +89,17 @@ class HSSALayer(BaseTunerLayer):
         hssa_B: Union[BufferDict, nn.ParameterDict],
         modules_weights_A: Optional[nn.ParameterDict] = None,
         modules_weights_B: Optional[nn.ParameterDict] = None,
+        layer_adaptive_param: Optional[nn.Parameter] = None,
+        hierarchy_adaptive_A: Optional[nn.Parameter] = None,
+        hierarchy_adaptive_B: Optional[nn.Parameter] = None,
     ):
         self.hssa_A = hssa_A
         self.hssa_B = hssa_B
         self.modules_weights_A = modules_weights_A
         self.modules_weights_B = modules_weights_B
+        self.layer_adaptive_param = layer_adaptive_param
+        self.hierarchy_adaptive_A = hierarchy_adaptive_A
+        self.hierarchy_adaptive_B = hierarchy_adaptive_B
 
     def update_layer(
         self,
@@ -294,14 +303,26 @@ class Linear(nn.Linear, HSSALayer):
         # During the forward pass, required submatrices are sliced out from the shared hssa_A and hssa_B.
         if module_weight_A is not None:
             result_1_after_hssa_A = F.linear(dropout(x), hssa_A)
+            if self.hierarchy_adaptive_A is not None:
+                result_1_after_hssa_A = (
+                    result_1_after_hssa_A * self.hierarchy_adaptive_A
+                )
             result_2_after_module_A = lambda_d * F.linear(
                 result_1_after_hssa_A, module_weight_A
             )
+
             result_3_after_module_B = F.linear(result_2_after_module_A, module_weight_B)
+            if self.hierarchy_adaptive_B is not None:
+                result_3_after_module_B = (
+                    result_3_after_module_B * self.hierarchy_adaptive_B
+                )
             result_4_afater_hssa_B = lambda_b * F.linear(
                 result_3_after_module_B, hssa_B
             )
-            result = result_4_afater_hssa_B
+            if self.layer_adaptive_param is not None:
+                result = result_4_afater_hssa_B * self.layer_adaptive_param
+            else:
+                result = result_4_afater_hssa_B
         else:
             sliced_A = hssa_A
             sliced_B = hssa_B

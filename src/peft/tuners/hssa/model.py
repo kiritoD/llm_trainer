@@ -24,6 +24,7 @@ from dataclasses import asdict
 from enum import Enum
 from typing import List, Optional, Union
 
+from altair import layer
 import torch
 import torch.nn as nn
 from torch.nn.init import _calculate_correct_fan
@@ -45,6 +46,8 @@ from .._buffer_dict import BufferDict
 from ..tuners_utils import _maybe_include_all_linear_layers
 from .config import HSSAConfig
 from .layer import Linear, HSSALayer
+
+NUMBER_RE = re.compile(r"\d+")
 
 
 def _kaiming_init(
@@ -216,11 +219,77 @@ class HSSAModel(BaseTuner):
                     else:
                         modules_weights_A[active_adapter] = None
                         modules_weights_B[active_adapter] = None
+                    layer_adaptive_param = None
+                    if hssa_config.layer_adaptive:
+                        layer_number = -1
+                        try:
+                            layer_number = int(NUMBER_RE.findall(key)[0])
+                        except:
+                            ...
+                        if layer_number != -1:
+                            layer_adaptive_param = self.layer_parameters_adaptive[
+                                layer_number
+                            ]
+
+                    hierarchy_adaptive_A, hierarchy_adaptive_B = None, None
+                    if hssa_config.hierarchy_adaptive:
+                        start, end = self.target_module_indexs[target_name]
+                        start *= hssa_config.hierarchy_space_r
+                        end *= hssa_config.hierarchy_space_r
+                        hierarchy_adaptive_A = self.subspace_parameters_adaptive_A[
+                            start:end
+                        ]
+                        hierarchy_adaptive_B = self.subspace_parameters_adaptive_B[
+                            start:end
+                        ]
+
                     parent.update_hssa_space(
-                        hssa_A, hssa_B, modules_weights_A, modules_weights_B
+                        hssa_A,
+                        hssa_B,
+                        modules_weights_A,
+                        modules_weights_B,
+                        layer_adaptive_param,
+                        hierarchy_adaptive_A,
+                        hierarchy_adaptive_B,
                     )
         self.if_hierarchy_update = True
         # update the target module
+
+    def _adaptive_init(self):
+        """
+        hierarchical space adaptive initialization.
+        """
+        active_adapter = self.active_adapter
+        hssa_config: HSSAConfig = self.peft_config[active_adapter]
+        layer_adaptive = hssa_config.layer_adaptive
+        hierarchy_adaptive = hssa_config.hierarchy_adaptive
+        hierarchy_r = hssa_config.hierarchy_space_r
+        adaptive_threshold = hssa_config.adaptive_threshold
+        self.num_hidden_layer = None
+        self.adaptive_threshold = -1
+        assert not ((adaptive_threshold != -1) ^ hierarchy_adaptive) or not (
+            (adaptive_threshold != -1) ^ layer_adaptive
+        ), "the argument `adaptive_threshold` in config should be set when `layer_adaptive` or `hierarchy_adaptive` are set to specific values."
+        if layer_adaptive:
+            self.num_hidden_layer = self.model.config.num_hidden_layers
+            self.layer_parameters_adaptive = nn.Parameter(
+                torch.ones(self.num_hidden_layer)
+            )
+        if hierarchy_adaptive:
+            assert (
+                hierarchy_r != -1
+            ), "the argument `hierarchy_adaptive` of config should not be set to -1"
+
+            r_multiple = len(hssa_config.target_modules)
+            self.subspace_parameters_adaptive_A = nn.Parameter(
+                torch.ones(hierarchy_r * r_multiple)
+            )
+            self.subspace_parameters_adaptive_B = nn.Parameter(
+                torch.ones(hierarchy_r * r_multiple)
+            )
+
+        if adaptive_threshold != -1:
+            self.adaptive_threshold = adaptive_threshold
 
     def forward(self, *args: warnings.Any, **kwargs: warnings.Any):
 
@@ -380,6 +449,8 @@ class HSSAModel(BaseTuner):
     def _pre_injection_hook(
         self, model: nn.Module, config: HSSAConfig, adapter_name: str
     ) -> None:
+        # for adaptive initialization, we need to use less parameters
+        self._adaptive_init()
         self._init_hssa_A_hssa_B(config, adapter_name)
 
     def _check_new_adapter_config(self, config: HSSAConfig) -> None:

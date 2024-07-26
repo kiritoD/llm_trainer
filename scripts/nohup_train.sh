@@ -1,0 +1,1 @@
+nohup python scripts/mp_process.py train_lhm_lrn_010.json 10 /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/config/hssa/train/distribution_analysis/roberta_base/explore/010_for_glue/lhm_lrn > /hpc2hdd/home/fwang380/dongjunwei/llm_trainer/model_output/logs/train_lhm_lrn_batch_010.log 2>&1 &

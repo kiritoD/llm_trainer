@@ -165,4 +165,4 @@ dataset_auxiliary/
 logs/
 wandb/
 model_output/
-
+config
